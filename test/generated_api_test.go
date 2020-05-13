@@ -21,7 +21,7 @@ import (
 //go:generate go run generate_api.go
 
 func TestForDebug(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	err := gorest.Generate("swagger.yaml", gorest.Options{
 		PackageName: "api",
 		TargetFile:  "api/api_gorest.go",
@@ -35,23 +35,50 @@ func TestProvidePayment(t *testing.T) {
 	r := gin.New()
 	api.RegisterRoutes(r, api.NewPaymentGatewayAPI())
 
-	request := httptest.NewRequest(http.MethodPost, "/v1/payment", bytes.NewReader([]byte(`
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+		body   string
+
+		returnCode int
+		response   string
+	}{
 		{
-			"payment_id": "c63dd8e4-ea77-11e9-b19a-5a001d190301",
-			"merchant_id": "cdb39a14-ea77-11e9-a6a4-5a001d190301",
-			"sum": "1000.50",
-			"type": "deposit"
-		}
-	`)))
-	request.Header.Set("Content-Type", "application/json")
-
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	if !assert.Equal(t, http.StatusOK, response.Code, response.Body.String()) {
-		return
+			"Simple test",
+			http.MethodPost, "/v1/payment",
+			`{
+				"payment_id": "c63dd8e4-ea77-11e9-b19a-5a001d190301",
+				"merchant_id": "cdb39a14-ea77-11e9-a6a4-5a001d190301",
+				"sum": "1000.50",
+				"type": "deposit"
+			}`,
+			http.StatusOK,
+			`{"provided_total":1000}`,
+		},
 	}
-	assert.Equal(t, response.Body.String(), `{"provided_total":1000}`)
+
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func (t *testing.T){
+			request := httptest.NewRequest(testCase.method,
+				testCase.path,
+				bytes.NewReader([]byte(testCase.body)),
+			)
+
+			request.Header.Set("Content-Type", "application/json")
+
+			response := httptest.NewRecorder()
+
+			r.ServeHTTP(response, request)
+			if !assert.Equal(t, http.StatusOK, response.Code, response.Body.String()) {
+				return
+			}
+			assert.Equal(t, testCase.response, response.Body.String())
+		})
+	}
+
 }
 
 func TestCreateUser(t *testing.T) {

@@ -28,8 +28,30 @@ func TestMakeBooleanConstructor(t *testing.T) {
 		assert.Equal(t, `switch strings.ToLower(flagStr) {
     case "1", "true", "t":
         result.Flag = true
+    case "0", "false", "f", "":
+        result.Flag = false
+    default:
+        errors = append(errors, NewFieldError(InPath, "flag", "can't parse as boolean", nil))
+}`, s)
+	})
+
+	t.Run("Required boolean", func(t *testing.T) {
+		s, err := MakeBooleanFieldConstructor(translator.Field{
+			Name:      "Flag",
+			Parameter: "flag",
+			Required:  true,
+			Type:      translator.BooleanField,
+		}, "InPath")
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.Equal(t, `switch strings.ToLower(flagStr) {
+    case "1", "true", "t":
+        result.Flag = true
     case "0", "false", "f":
         result.Flag = false
+    case "":
+        errors = append(errors, NewFieldError(InPath, "flag", "is absent", nil))
     default:
         errors = append(errors, NewFieldError(InPath, "flag", "can't parse as boolean", nil))
 }`, s)

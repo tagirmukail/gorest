@@ -58,15 +58,22 @@ func (g *Generator) makeRequest(wr io.Writer, interfaceName string, method *open
 	body := openapi3.NewObjectSchema("")
 
 	for _, param := range method.Parameters {
+		addProperty := func(obj *openapi3.SchemaType, parameter openapi3.ParameterType) {
+			obj.Properties[parameter.Name] = parameter.Schema
+			if parameter.Required  {
+				obj.Required = append(obj.Required, parameter.Name)
+			}
+		}
+
 		switch param.In {
 		case "query":
-			queryParams.Properties[param.Name] = param.Schema
+			addProperty(&queryParams, param)
 		case "path":
-			pathParams.Properties[param.Name] = param.Schema
+			addProperty(&pathParams, param)
 		case "cookie":
-			cookieParams.Properties[param.Name] = param.Schema
+			addProperty(&cookieParams, param)
 		case "header":
-			headerParams.Properties[param.Name] = param.Schema
+			addProperty(&headerParams, param)
 		default:
 			return request, fmt.Errorf("unknown param place: %s", param.In)
 		}

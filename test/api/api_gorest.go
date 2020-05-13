@@ -169,7 +169,7 @@ func MakeExampleRequestQuery(c *gin.Context) (result ExampleRequestQuery, errors
 	switch strings.ToLower(debugStr) {
 	case "1", "true", "t":
 		result.Debug = true
-	case "0", "false", "f":
+	case "0", "false", "f", "":
 		result.Debug = false
 	default:
 		errors = append(errors, NewFieldError(InQuery, "debug", "can't parse as boolean", nil))
@@ -196,7 +196,10 @@ func MakeExampleRequestQuery(c *gin.Context) (result ExampleRequestQuery, errors
 		errors = append(errors, NewFieldError(InQuery, "sum", fmt.Sprintf("can't create from string '%s'", sumStr), err))
 	}
 
-	testStr, _ := c.GetQuery("test")
+	testStr, ok := c.GetQuery("test")
+	if !ok {
+		errors = append(errors, NewFieldError(InPath, "test", "is absent", nil))
+	}
 	result.Test = testStr
 
 	toStr, _ := c.GetQuery("to")
@@ -333,10 +336,16 @@ func MakeGetPaymentRequest(c *gin.Context) (result GetPaymentRequest, errors []F
 }
 
 func MakeGetPaymentRequestQuery(c *gin.Context) (result GetPaymentRequestQuery, errors []FieldError) {
-	asyncStr, _ := c.GetQuery("async")
+	asyncStr, ok := c.GetQuery("async")
+	if !ok {
+		asyncStr = "false"
+	}
 	result.Async = asyncStr
 
-	idStr, _ := c.GetQuery("id")
+	idStr, ok := c.GetQuery("id")
+	if !ok {
+		errors = append(errors, NewFieldError(InPath, "id", "is absent", nil))
+	}
 	result.ID = idStr
 
 	return

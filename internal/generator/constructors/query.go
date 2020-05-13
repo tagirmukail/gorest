@@ -17,18 +17,28 @@ var queryParamsConstructorTemplate = template.Must(template.New("queryParamsCons
 func Make{{ .Name }}(c *gin.Context) (result {{ .Name }}, errors []FieldError) {
 	{{- if .HasNoStringFields }}
 	var err error
+    {{- else if .ContextErrorRequired }}
+	var err error
 	{{ end }}
+
+    {{- range .Fields2 }}
+		{{ .BuildCode }}
+    {{ end -}}
 
 	{{- range $, $field := .Fields }}
 	{{- with $field }}
-		{{- if .CheckDefault}}
-			{{ .StrVarName }}, ok := c.GetQuery("{{ .Parameter }}")
-			if !ok {
-				{{ .StrVarName }} = "{{ .Schema.Default }}"
-			}
-		{{- else }}
-			{{ .StrVarName }}, _ := c.GetQuery("{{ .Parameter }}")
-		{{- end }}
+        {{- if or .CheckDefault .IsRequired}}
+        {{ .StrVarName }}, ok := c.GetQuery("{{ .Parameter }}")
+        if !ok {
+           {{- if .CheckDefault }}
+           {{ .StrVarName }} = "{{ .Schema.Default }}"
+           {{- else }}
+           errors = append(errors, NewFieldError(InPath, "{{ .Parameter }}", "is absent", nil))
+           {{- end }}
+        }
+        {{- else }}
+        {{ .StrVarName }}, _ := c.GetQuery("{{ .Parameter }}")
+        {{- end }}
 
 		{{- BaseValueFieldConstructor . "InQuery" }}
 
