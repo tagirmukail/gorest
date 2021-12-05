@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	yaml "gopkg.in/yaml.v3"
 )
 
 const handlerNameKey = "handler"
@@ -36,6 +37,7 @@ type ContentType int
 const (
 	UndefinedContentType ContentType = iota
 	AppJSON
+	AppYAML
 	AppXML
 	AppFormUrlencoded
 	MultipartFormData

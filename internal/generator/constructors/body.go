@@ -35,6 +35,14 @@ func Make{{ .Name }}(c *gin.Context) (result {{ .Name }}, errors []FieldError) {
 			}
 		{{ end }}
 
+		{{- if eq .Name "YAML" }}
+		case "application/x-yaml":
+			result.Type = AppYAML
+			if err := yaml.NewDecoder(c.Request.Body).Decode(&result.YAML); err != nil {
+				errors = append(errors, NewFieldError(InBody, "requestBody", "can't decode body from YAML", err))
+			}
+		{{ end }}
+
 		{{- if eq .Name "XML" }}
 		case "application/xml":
 			result.Type = AppXML

@@ -90,6 +90,8 @@ func (g *Generator) makeRequest(wr io.Writer, interfaceName string, method *open
 			switch mimeType {
 			case "application/json":
 				body.Properties["JSON"] = content.Schema
+			case "application/x-yaml":
+				body.Properties["YAML"] = content.Schema
 			case "application/xml":
 				body.Properties["XML"] = content.Schema
 			case "multipart/form-data":
@@ -116,7 +118,7 @@ func (g *Generator) makeRequest(wr io.Writer, interfaceName string, method *open
 
 	// Make structs
 	for _, d := range defs {
-		if err := g.makeStruct(wr, d, false); err != nil {
+		if err := g.makeStruct(wr, d, false, nil); err != nil {
 			return s{}, err
 		}
 

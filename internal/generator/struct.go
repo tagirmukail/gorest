@@ -2,6 +2,8 @@ package generator
 
 import (
 	"io"
+	"mime"
+	"strings"
 	"text/template"
 
 	"github.com/kepkin/gorest/internal/generator/translator"
@@ -20,15 +22,16 @@ type {{ .Name }} struct {
 `))
 
 var structWithJSONTagsTemplate = template.Must(template.New("structWithJSON").Parse(`
-type {{ .Name }} struct {
-	{{- range $, $field := .Fields -}}
-	{{ $field.Name }} {{ $field.GoType -}} ` + "`json:\"" + "{{ $field.Parameter }}\"`" + `
+{{ $mimeTypes := .MimeTypes }}
+type {{ .Def.Name }} struct {
+	{{- range $, $field := .Def.Fields -}}
+	{{ $field.Name }} {{ $field.GoType -}} ` + "`{{- range $, $mType := $mimeTypes -}} {{ $mType }}:\"{{ $field.Parameter }}\" {{ end -}}`" + `
 	{{ end -}}
 }
 `))
 
 // TODO(a.telyshev): Test me
-func (g *Generator) makeStruct(wr io.Writer, def translator.TypeDef, withJSONTags bool) error {
+func (g *Generator) makeStruct(wr io.Writer, def translator.TypeDef, withJSONTags bool, contentTypes []string) error {
 	if def.GoType != "struct" {
 		return primitiveTypeTemplate.Execute(wr, def)
 	}
@@ -39,7 +42,34 @@ func (g *Generator) makeStruct(wr io.Writer, def translator.TypeDef, withJSONTag
 		}
 	}
 	if withJSONTags {
-		return structWithJSONTagsTemplate.Execute(wr, def)
+		mimeTypes := g.contentTypesToMimeTypes(contentTypes)
+
+		return structWithJSONTagsTemplate.Execute(wr, map[string]interface{}{
+			"Def":       def,
+			"MimeTypes": mimeTypes,
+		})
 	}
 	return structTemplate.Execute(wr, def)
+}
+
+func (g *Generator) contentTypesToMimeTypes(ct []string) []string {
+	var result = make([]string, 0)
+
+	jsonExist := false
+	for _, contentType := range ct {
+		extensions, _ := mime.ExtensionsByType(contentType)
+		for _, ext := range extensions {
+			result = append(result, strings.Replace(ext, ".", "", 1))
+		}
+
+		if contentType == "application/json" {
+			jsonExist = true
+		}
+	}
+
+	if !jsonExist {
+		result = append(result, "json")
+	}
+
+	return result
 }
